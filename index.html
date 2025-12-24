@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام ترقية الفواتير الإلكترونية</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧾</text></svg>">
+    
+    <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bwip-js/dist/bwip-js-min.js"></script>
+    
+    <style>
+        :root { 
+            --zatca-blue: #005dff; --zatca-green: #28a745; --zatca-red: #dc3545;
+            --bg-color: #f3f6f9; --card-bg: #ffffff; --text-color: #333333; --label-color: #555555;
+            --border-color: #e1e4e8; --input-bg: #ffffff;
+        }
+        [data-theme="dark"] {
+            --bg-color: #121212; --card-bg: #1e1e1e; --text-color: #e0e0e0; --label-color: #bbbbbb;
+            --border-color: #333333; --input-bg: #2d2d2d;
+        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; color: var(--text-color); transition: 0.3s; }
+        .container { max-width: 1250px; margin: auto; background: var(--card-bg); padding: 30px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        h2 { color: var(--zatca-blue); margin: 0; font-weight: 800; }
+        .theme-toggle { background: var(--zatca-blue); color: white; border: none; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; }
+        .main-grid { display: grid; grid-template-columns: 380px 1fr 320px; gap: 25px; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; height: fit-content; transition: 0.3s; }
+        h3 { font-size: 1.1em; margin-top: 0; border-right: 4px solid var(--zatca-blue); padding-right: 10px; margin-bottom: 20px; }
+        .fields-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-size: 0.85em; font-weight: 600; color: var(--label-color); margin-bottom: 5px; }
+        input, select { padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9em; background: var(--input-bg); color: var(--text-color); transition: 0.3s; }
+        .drop-zone { border: 2px dashed var(--zatca-blue); padding: 25px; text-align: center; cursor: pointer; border-radius: 10px; background: rgba(0, 93, 255, 0.05); margin-bottom: 20px; color: var(--zatca-blue); font-weight: bold; }
+        .preview-box { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 450px; background: rgba(0,0,0,0.02); border: 1px inset var(--border-color); }
+        #qr-image-preview { max-width: 100%; cursor: grab; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 4px; }
+        .btn-action { background: var(--zatca-green); color: white; padding: 14px; border: none; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; font-size: 1em; }
+        .btn-reset { background: var(--zatca-red); margin-top: 10px; }
+        .btn-action:hover { opacity: 0.9; transform: translateY(-2px); }
+        .hash-box { margin-top: 20px; font-family: monospace; font-size: 0.7em; word-break: break-all; color: var(--label-color); background: rgba(0,0,0,0.05); padding: 12px; border-radius: 6px; width: 90%; }
+        canvas { display: none; }
+    </style>
+</head>
+<body data-theme="light">
+
+<div class="container">
+    <div class="header-box">
+        <h2>🧾 نظام ترقية الفواتير الإلكترونية</h2>
+        <button class="theme-toggle" onclick="toggleTheme()">تبديل المظهر 🌓</button>
+    </div>
+    
+    <div class="main-grid">
+        <div class="card">
+            <h3>1. استخراج البيانات (Phase 1)</h3>
+            <div id="dropZone" class="drop-zone">اسحب صورة رمز المرحلة الأولى هنا</div>
+            <input type="file" id="fileInput" accept="image/*" style="display:none;">
+            
+            <div class="fields-grid" id="invoice-fields">
+                <div class="input-group">
+                    <label>اسم المورد</label><input type="text" id="name">
+                </div>
+                <div class="input-group">
+                    <label>الرقم الضريبي</label><input type="text" id="vat" maxlength="15">
+                </div>
+                <div class="input-group">
+                    <label>وقت وتاريخ الإصدار</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="datetime-local" id="time" style="flex: 3;">
+                        <input type="number" id="seconds" placeholder="ثانية" min="0" max="59" value="00" style="flex: 1;">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>الإجمالي</label><input type="number" id="total" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label>مبلغ الضريبة</label><input type="number" id="tax" step="0.01">
+                </div>
+                <button class="btn-action" onclick="generateUpgradedQR()">ترقية إلى المرحلة الثانية</button>
+                <button class="btn-action btn-reset" onclick="resetApp()">إعادة ضبط الإعدادات 🔄</button>
+            </div>
+        </div>
+
+        <div class="card preview-box">
+            <h3>2. المعاينة والتصدير (قابلة للسحب)</h3>
+            <img id="qr-image-preview" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" alt="QR Preview">
+            <div id="hash-info" class="hash-box">الهاش سيظهر هنا...</div>
+        </div>
+
+        <div class="card">
+            <h3>3. إعدادات الـ QR المتقدمة</h3>
+            <div class="settings-grid">
+                <div class="input-group">
+                    <label>تصحيح الأخطاء (ECC)</label>
+                    <select id="ecc"><option value="L">L (7%)</option><option value="M" selected>M (15%)</option><option value="Q">Q (25%)</option><option value="H">H (30%)</option></select>
+                </div>
+                <div class="input-group">
+                    <label>حجم الصورة (Pixels)</label>
+                    <input type="number" id="qr-size" value="3000">
+                </div>
+                <div class="input-group">
+                    <label>وحدة منطقة الهدوء</label>
+                    <select id="qz-unit"><option value="pixel">بكسل</option><option value="module" selected>خلية (Module)</option></select>
+                </div>
+                <div class="input-group">
+                    <label>حجم منطقة الهدوء</label>
+                    <input type="number" id="qz-size" value="3">
+                </div>
+                <div class="input-group">
+                    <label>لون الرمز</label><input type="color" id="fg-color" value="#000000">
+                </div>
+                <div class="input-group">
+                    <label>لون الخلفية</label><input type="color" id="bg-color" value="#ffffff">
+                </div>
+                <div class="input-group">
+                    <label>خلفية شفافة</label>
+                    <select id="transparent"><option value="off">إيقاف</option><option value="on" selected>تشغيل</option></select>
+                </div>
+                <div class="input-group">
+                    <label>دقة التصدير (DPI)</label><input type="number" id="dpi" value="600">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<canvas id="internal-canvas"></canvas>
+
+<script>
+    function toggleTheme() {
+        const body = document.body;
+        const current = body.getAttribute('data-theme');
+        body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    }
+
+    function resetApp() {
+        document.getElementById('name').value = '';
+        document.getElementById('vat').value = '';
+        document.getElementById('time').value = '';
+        document.getElementById('seconds').value = '00';
+        document.getElementById('total').value = '';
+        document.getElementById('tax').value = '';
+        document.getElementById('ecc').value = 'M';
+        document.getElementById('qr-size').value = 3000;
+        document.getElementById('qz-unit').value = 'module';
+        document.getElementById('qz-size').value = 3;
+        document.getElementById('fg-color').value = '#000000';
+        document.getElementById('bg-color').value = '#ffffff';
+        document.getElementById('transparent').value = 'on';
+        document.getElementById('dpi').value = 600;
+        document.getElementById('qr-image-preview').src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+        document.getElementById('hash-info').innerText = 'الهاش سيظهر هنا...';
+        alert("تمت إعادة الضبط بنجاح.");
+    }
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    dropZone.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => processImage(e.target.files[0]);
+
+    function processImage(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width; canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                const code = jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
+                if (code) decodeZatca(code.data);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function decodeZatca(data) {
+        try {
+            const binary = atob(data);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            let i = 0; let res = {};
+            while (i < bytes.length) {
+                let tag = bytes[i]; let len = bytes[i+1];
+                res[tag] = new TextDecoder().decode(bytes.slice(i+2, i+2+len));
+                i += 2 + len;
+            }
+            document.getElementById('name').value = res[1] || "";
+            document.getElementById('vat').value = res[2] || "";
+            document.getElementById('total').value = res[4] || "";
+            document.getElementById('tax').value = res[5] || "";
+            if(res[3]) {
+                const d = new Date(res[3]);
+                const offset = d.getTimezoneOffset() * 60000;
+                const adjustedDate = new Date(d - offset);
+                document.getElementById('time').value = adjustedDate.toISOString().slice(0, 16);
+                document.getElementById('seconds').value = String(adjustedDate.getUTCSeconds()).padStart(2, '0');
+            }
+        } catch(e) { alert("خطأ في قراءة الرمز"); }
+    }
+
+    async function generateUpgradedQR() {
+        const name = document.getElementById('name').value;
+        const vat = document.getElementById('vat').value;
+        const total = document.getElementById('total').value;
+        const tax = document.getElementById('tax').value;
+        const timeVal = document.getElementById('time').value;
+        const secVal = document.getElementById('seconds').value || "00";
+        if(!timeVal) return alert("يرجى إدخال التاريخ");
+
+        const d = new Date(timeVal);
+        const localTimeStr = d.getFullYear() + "-" + 
+                        String(d.getMonth() + 1).padStart(2, '0') + "-" + 
+                        String(d.getDate()).padStart(2, '0') + "T" + 
+                        String(d.getHours()).padStart(2, '0') + ":" + 
+                        String(d.getMinutes()).padStart(2, '0') + ":" + 
+                        String(secVal).padStart(2, '0');
+
+        const virtualXML = `<Invoice><Seller>${name}</Seller><VAT>${vat}</VAT><Total>${total}</Total><Date>${localTimeStr}</Date></Invoice>`;
+        const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(virtualXML));
+        const hashBase64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)));
+
+        const tags = [
+            buildTag(1, name), buildTag(2, vat), buildTag(3, localTimeStr),
+            buildTag(4, total), buildTag(5, tax), buildTag(6, hashBase64),
+            buildTag(7, "MEUCIQDY6Z2pS+xSclRInN+YIdR7vI3Y3I5M1N0UnpYSm9uRFF0YmcIgQDI..."),
+            buildTag(8, "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEV6...")
+        ];
+
+        let len = tags.reduce((a, b) => a + b.length, 0);
+        let combined = new Uint8Array(len);
+        let pos = 0; tags.forEach(t => { combined.set(t, pos); pos += t.length; });
+        renderFinalQR(btoa(String.fromCharCode(...combined)), hashBase64);
+    }
+
+    function renderFinalQR(text, hash) {
+        const size = parseInt(document.getElementById('qr-size').value);
+        const isTrans = document.getElementById('transparent').value === 'on';
+        const qzSize = parseInt(document.getElementById('qz-size').value);
+        const bgColor = document.getElementById('bg-color').value.replace('#', '');
+        
+        const options = {
+            bcid: 'qrcode', text: text, scale: 10,
+            eclevel: document.getElementById('ecc').value,
+            barcolor: document.getElementById('fg-color').value.replace('#', ''),
+            backgroundcolor: isTrans ? '' : bgColor,
+        };
+
+        const internalCanvas = document.getElementById('internal-canvas');
+        try {
+            bwipjs.toCanvas(internalCanvas, options);
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = size; finalCanvas.height = size;
+            const ctx = finalCanvas.getContext('2d');
+            if (!isTrans) { ctx.fillStyle = '#' + bgColor; ctx.fillRect(0, 0, size, size); }
+            let margin = (document.getElementById('qz-unit').value === 'module') ? (size / 45 * qzSize) : qzSize;
+            ctx.drawImage(internalCanvas, margin, margin, size - (margin * 2), size - (margin * 2));
+            document.getElementById('qr-image-preview').src = finalCanvas.toDataURL("image/png");
+            document.getElementById('hash-info').innerText = "Hash: " + hash;
+        } catch (e) { alert("خطأ في التوليد"); }
+    }
+
+    function buildTag(tag, val) {
+        const b = new TextEncoder().encode(val);
+        const r = new Uint8Array(2 + b.length);
+        r[0] = tag; r[1] = b.length; r.set(b, 2);
+        return r;
+    }
+</script>
+</body>
+</html>

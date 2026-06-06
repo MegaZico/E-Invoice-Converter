@@ -1,104 +1,407 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Smart QR Generator & Reader</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/encoding-japanese@1.0.30/encoding.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-  
-  <style>
-    /* ... (احتفظت بنفس التنسيقات الخاصة بك لضمان نفس الشكل) ... */
-    :root { --primary: #2563eb; --primary-light: #3b82f6; --bg-page: #f8fafc; --bg-card: #ffffff; }
-    body { font-family: sans-serif; background: var(--bg-page); padding: 20px; }
-    .container { max-width: 800px; margin: auto; }
-    .card { background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .preview-img { width: 300px; height: 300px; border: 1px solid #ddd; cursor: grab; }
-    .btn { padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام ترقية المرحلة</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bwip-js/dist/bwip-js-min.js"></script>
+    
+    <style>
+        :root { 
+            --primary: #3b82f6; 
+            --primary-hover: #2563eb;
+            --bg-body: #0f172a; 
+            --card-bg: #1e293b;
+            --input-bg: #0f172a;
+            --text-main: #f1f5f9; 
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --accent-green: #10b981;
+        }
+
+        [data-theme="light"] {
+            --bg-body: #f8fafc; 
+            --card-bg: #ffffff;
+            --input-bg: #f1f5f9;
+            --text-main: #1e293b; 
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; transition: background 0.2s, border-color 0.2s; }
+
+        body { 
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg-body); 
+            margin: 0; padding: 20px; 
+            color: var(--text-main); 
+            min-height: 100vh;
+            display: flex; align-items: center;
+        }
+
+        .container { 
+            width: 100%; max-width: 1350px; margin: auto;
+            background: var(--card-bg); padding: 25px; 
+            border-radius: 24px; border: 1px solid var(--border-color);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+        }
+
+        .header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color);
+        }
+
+        .header h2 { font-size: 1.5rem; font-weight: 800; margin: 0; color: var(--primary); }
+
+        .main-grid { 
+            display: grid; grid-template-columns: 360px 1fr 320px; 
+            gap: 25px; align-items: start; 
+        }
+
+        .card { 
+            background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); 
+            padding: 20px; border-radius: 18px;
+        }
+
+        .card h3 { font-size: 1rem; margin-bottom: 20px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; font-weight: 700; }
+
+        .input-group { margin-bottom: 15px; }
+        
+        label { 
+            display: block; 
+            font-size: 0.8rem; 
+            font-weight: 700; 
+            margin-bottom: 8px; 
+            color: var(--text-muted);
+            min-height: 2.4em;
+            line-height: 1.2;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        input, select { 
+            width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); 
+            border-radius: 10px; background: var(--input-bg); color: var(--text-main); font-size: 0.9rem;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        #vat, #time, #total, #tax {
+            font-family: 'Courier New', Courier, monospace !important;
+            font-weight: bold;
+        }
+
+        #total, #tax {
+            font-size: 0.85rem;
+            letter-spacing: 0px;
+        }
+
+        #vat, #time {
+            font-size: 0.95rem;
+        }
+
+        [data-theme="dark"] input::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.5);
+            cursor: pointer;
+        }
+
+        .btn-primary { 
+            font-family: 'Tajawal', sans-serif;
+            background: var(--primary); color: white; padding: 14px; 
+            border: none; width: 100%; border-radius: 12px; 
+            font-weight: 700; cursor: pointer; font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            margin-top: 10px;
+        }
+        .btn-primary:hover { transform: translateY(-2px); background: var(--primary-hover); }
+        
+        .btn-outline { 
+            font-family: 'Tajawal', sans-serif;
+            background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); 
+            margin-top: 10px; padding: 10px; font-size: 0.85rem; border-radius: 10px; cursor: pointer; width: 100%;
+        }
+        .btn-outline:hover { color: #ef4444; border-color: #ef4444; }
+
+        .theme-toggle-btn {
+            width: 45px !important; height: 45px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; border-radius: 50% !important; margin: 0 !important; padding: 0 !important;
+        }
+
+        .preview-area { text-align: center; display: flex; flex-direction: column; gap: 20px; }
+        .qr-display-card { background: var(--input-bg); padding: 25px; border-radius: 20px; border: 1px solid var(--border-color); }
+
+        .qr-img { max-width: 240px; height: auto; border-radius: 12px; border: 5px solid var(--card-bg); background-color: white; box-shadow: 0 15px 35px rgba(0,0,0,0.3); cursor: grab; }
+        .qr-img:active { cursor: grabbing; }
+
+        .hash-box { font-family: 'Courier New', monospace; font-size: 0.75rem; background: var(--bg-body); padding: 12px; border-radius: 10px; color: var(--accent-green); word-break: break-all; margin-top: 15px; border: 1px solid rgba(16, 185, 129, 0.1); }
+
+        .drop-zone { border: 2px dashed var(--border-color); padding: 20px; text-align: center; margin-bottom: 20px; border-radius: 15px; color: var(--text-muted); cursor: pointer; font-weight: 500; }
+        .drop-zone:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
+
+        .settings-row { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+            align-items: end;
+        }
+    </style>
 </head>
-<body>
+<body data-theme="dark">
 
 <div class="container">
-  <div class="card">
-    <h2>QR Generator</h2>
-    <div class="generator">
-      <button id="generateBtn" class="btn">Generate QR</button>
-      
-      <div style="margin-top:20px;">
-        <img id="previewImg" class="preview-img" alt="QR preview" draggable="true" />
-        <p><em>Try dragging the image above to your desktop!</em></p>
-      </div>
+    <div class="header">
+        <h2>نظام ترقية المرحلة</h2>
+        <button class="btn-outline theme-toggle-btn" onclick="toggleTheme()" title="تبديل المظهر">🌓</button>
     </div>
-  </div>
+    
+    <div class="main-grid">
+        <div class="card">
+            <h3>📝 بيانات الفاتورة</h3>
+            <div id="dropZone" class="drop-zone">📥 اسحب صورة QR هنا للاستيراد</div>
+            <input type="file" id="fileInput" style="display:none;">
+            
+            <div class="input-group"><label>اسم البائع</label><input type="text" id="name" placeholder="مثال: متجر التقنية"></div>
+            <div class="input-group"><label>الرقم الضريبي</label><input type="text" id="vat" maxlength="15" placeholder="310xxxxxxxxxxxx"></div>
+            
+            <div class="input-group">
+                <label>تاريخ ووقت الفاتورة</label>
+                <input type="datetime-local" id="time" step="1">
+            </div>
+
+            <div class="settings-row">
+                <div class="input-group">
+                    <label>إجمالي الفاتورة (مع الضريبة)</label>
+                    <input type="number" id="total" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label>ضريبة القيمة المضافة</label>
+                    <input type="number" id="tax" step="0.01">
+                </div>
+            </div>
+            
+            <button class="btn-primary" onclick="generateDualQR()">توليد الرموز</button>
+            <button class="btn-outline" onclick="location.reload()">إعادة تعيين 🔄</button>
+        </div>
+
+        <div class="preview-area">
+            <div class="qr-display-card">
+                <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 15px; color: var(--primary);">رمز المرحلة الثانية</div>
+                <a id="qr-p2-link" href="#" download="Phase_2_QR.png" draggable="true" style="display:inline-block; text-decoration:none;">
+                    <img id="qr-p2-preview" class="qr-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+                </a>
+                <button class="btn-outline" style="margin-top: 15px; font-weight: bold;" onclick="downloadQR('qr-p2-preview', 'Phase_2_QR.png')">⬇️ تحميل رمز المرحلة الثانية</button>
+                <div class="hash-box" id="hash-display">SHA256: Waiting...</div>
+            </div>
+            
+            <div class="qr-display-card" style="opacity: 0.7; transform: scale(0.9);">
+                <div style="font-size: 0.8rem; margin-bottom: 10px; color: var(--text-muted);">رمز المرحلة الأولى</div>
+                <a id="qr-p1-link" href="#" download="Phase_1_QR.png" draggable="true" style="display:inline-block; text-decoration:none;">
+                    <img id="qr-p1-preview" class="qr-img" style="max-width: 160px;">
+                </a>
+                <button class="btn-outline" style="margin-top: 15px; font-weight: bold;" onclick="downloadQR('qr-p1-preview', 'Phase_1_QR.png')">⬇️ تحميل رمز المرحلة الأولى</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>⚙️ إعدادات التصدير المتقدمة</h3>
+            <div class="input-group">
+                <label>دقة الصورة (DPI)</label>
+                <select id="dpi">
+                    <option value="600" selected>600 DPI (جودة طباعة)</option>
+                    <option value="300">300 DPI</option>
+                    <option value="150">150 DPI</option>
+                </select>
+            </div>
+            <div class="input-group"><label>حجم الصورة (بكسل)</label><input type="number" id="qr-size" value="3000"></div>
+            <div class="input-group">
+                <label>مستوى تصحيح الخطأ (ECC)</label>
+                <select id="ecc">
+                    <option value="L">Level L (7%)</option>
+                    <option value="M" selected>Level M (15%)</option>
+                    <option value="Q">Level Q (25%)</option>
+                    <option value="H">Level H (30%)</option>
+                </select>
+            </div>
+            <div class="settings-row">
+                <div class="input-group">
+                    <label>نوع الهامش</label>
+                    <select id="qz-unit">
+                        <option value="module" selected>Modules</option>
+                        <option value="pixel">Pixels</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>حجم الهامش</label>
+                    <input type="number" id="qz-size" value="3">
+                </div>
+            </div>
+            <div class="input-group">
+                <label>خلفية الصورة</label>
+                <select id="transparent">
+                    <option value="off" selected>بيضاء (White)</option>
+                    <option value="on">شفافة (Transparent)</option>
+                </select>
+            </div>
+        </div>
+    </div>
 </div>
 
+<canvas id="internal-canvas" style="display:none;"></canvas>
+
 <script>
-  const previewImg = document.getElementById('previewImg');
-  const generateBtn = document.getElementById('generateBtn');
-  let currentBlobUrl = null;
-
-  // 1. منطق التوليد (بسيط للتوضيح)
-  generateBtn.addEventListener('click', async () => {
-    // محاكاة توليد QR
-    const qr = qrcode(0, 'M');
-    qr.addData('https://google.com');
-    qr.make();
-    
-    // إنشاء Canvas
-    const canvas = document.createElement('canvas');
-    canvas.width = 300;
-    canvas.height = 300;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0,0,300,300);
-    ctx.fillStyle = '#000000';
-    // رسم بسيط
-    ctx.fillRect(50, 50, 200, 200); 
-
-    // تحويل إلى Blob
-    canvas.toBlob(blob => {
-      if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
-      currentBlobUrl = URL.createObjectURL(blob);
-      previewImg.src = currentBlobUrl;
-    }, 'image/png');
-  });
-
-  // 2. الحل الجذري للسحب والإفلات (Drag and Drop)
-  previewImg.addEventListener('dragstart', (e) => {
-    if (!currentBlobUrl) {
-      e.preventDefault();
-      return;
+    function toggleTheme() {
+        const body = document.body;
+        body.setAttribute('data-theme', body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
     }
 
-    // السماح بنسخ الملف
-    e.dataTransfer.effectAllowed = 'copy';
+    async function generateDualQR() {
+        const name = document.getElementById('name').value;
+        const vat = document.getElementById('vat').value;
+        const total = document.getElementById('total').value;
+        const tax = document.getElementById('tax').value;
+        const timeVal = document.getElementById('time').value;
 
-    /* السر هنا: 
-       1. DownloadURL: هذا هو المفتاح لإخبار المتصفح أن هذا الرابط هو ملف.
-       2. text/uri-list: للتوافق مع المتصفحات القديمة.
-       3. الترتيب مهم جداً ليتم التعرف عليه كملف.
-    */
-    const fileName = "QRCode.png";
-    const mimeType = "image/png";
-    
-    // التنسيق الصحيح: [MIME]:[NAME]:[URL]
-    const downloadData = `${mimeType}:${fileName}:${currentBlobUrl}`;
-    
-    e.dataTransfer.setData('DownloadURL', downloadData);
-    e.dataTransfer.setData('text/uri-list', currentBlobUrl);
-    e.dataTransfer.setData('text/plain', currentBlobUrl);
+        if(!timeVal || !name) return alert("يرجى إدخال اسم البائع والتاريخ");
 
-    console.log("Drag started, Transfer data set to:", downloadData);
-  });
+        const timeStr = timeVal; 
+        
+        const tagsP1 = [buildTag(1, name), buildTag(2, vat), buildTag(3, timeStr), buildTag(4, total), buildTag(5, tax)];
+        renderQR(combineTags(tagsP1), 'qr-p1-preview', 'p1');
 
-  // إضافة معالج للإفلات (اختياري لضمان السلوك)
-  previewImg.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  });
+        const encoder = new TextEncoder();
+        const hashBuf = await crypto.subtle.digest('SHA-256', encoder.encode(name + vat + timeStr + total + tax));
+        const hashB64 = btoa(String.fromCharCode(...new Uint8Array(hashBuf)));
 
+        const keyPair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign"]);
+        const signature = await crypto.subtle.sign({ name: "ECDSA", hash: { name: "SHA-256" } }, keyPair.privateKey, hashBuf);
+        const sigB64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+        const pubKeyBuf = await crypto.subtle.exportKey("spki", keyPair.publicKey);
+        const pubKeyB64 = btoa(String.fromCharCode(...new Uint8Array(pubKeyBuf)));
+
+        const tagsP2 = [...tagsP1, buildTag(6, hashB64), buildTag(7, sigB64), buildTag(8, pubKeyB64)];
+        renderQR(combineTags(tagsP2), 'qr-p2-preview', 'p2');
+        document.getElementById('hash-display').innerText = "SHA256: " + hashB64;
+    }
+
+    function renderQR(textBase64, targetImgId, type) {
+        const targetSize = parseInt(document.getElementById('qr-size').value) || 3000;
+        const isTrans = document.getElementById('transparent').value === 'on';
+        const qzUnit = document.getElementById('qz-unit').value;
+        const qzVal = parseInt(document.getElementById('qz-size').value) || 0;
+        const ecc = document.getElementById('ecc').value;
+        const canvas = document.getElementById('internal-canvas');
+        try {
+            bwipjs.toCanvas(canvas, { bcid: 'qrcode', text: textBase64, scale: 10, eclevel: ecc, padding: 0, backgroundcolor: isTrans ? undefined : 'ffffff' });
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = targetSize; finalCanvas.height = targetSize;
+            const ctx = finalCanvas.getContext('2d');
+            if(!isTrans) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, targetSize, targetSize); }
+            let marginPx = (qzUnit === 'pixel') ? qzVal : (targetSize / (type==='p2'?130:60)) * qzVal;
+            ctx.drawImage(canvas, marginPx, marginPx, targetSize - (marginPx * 2), targetSize - (marginPx * 2));
+            
+            // التعديل السحري: تحويل الكانفاس إلى ملف حقيقي (Blob) بدلاً من نص Base64 للتعامل مع الأحجام الكبيرة
+            finalCanvas.toBlob(function(blob) {
+                const blobUrl = URL.createObjectURL(blob);
+                const imgEl = document.getElementById(targetImgId);
+                const linkEl = document.getElementById(targetImgId.replace('-preview', '-link'));
+
+                // تنظيف الذاكرة من الرابط القديم إن وجد لتجنب ثقل المتصفح
+                if (imgEl.dataset.blobUrl) {
+                    URL.revokeObjectURL(imgEl.dataset.blobUrl);
+                }
+
+                imgEl.src = blobUrl;
+                imgEl.dataset.blobUrl = blobUrl;
+
+                if(linkEl) {
+                    linkEl.href = blobUrl;
+                }
+            }, "image/png");
+            
+        } catch(e) { console.error(e); }
+    }
+
+    function buildTag(tag, val) {
+        const b = new TextEncoder().encode(val);
+        const r = new Uint8Array(2 + b.length);
+        r[0] = tag; r[1] = b.length; r.set(b, 2);
+        return r;
+    }
+
+    function combineTags(tags) {
+        let len = tags.reduce((a, b) => a + b.length, 0);
+        let combined = new Uint8Array(len);
+        let pos = 0; tags.forEach(t => { combined.set(t, pos); pos += t.length; });
+        return btoa(String.fromCharCode(...combined));
+    }
+
+    document.getElementById('dropZone').onclick = () => document.getElementById('fileInput').click();
+    document.getElementById('fileInput').onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                const c = document.createElement('canvas');
+                c.width = img.width; c.height = img.height;
+                const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+                const code = jsQR(ctx.getImageData(0,0,c.width,c.height).data, c.width, c.height);
+                if(code) {
+                    try {
+                        const binary = atob(code.data);
+                        const bytes = new Uint8Array(binary.length);
+                        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                        let i = 0; let res = {};
+                        while (i < bytes.length) {
+                            let t = bytes[i]; let l = bytes[i+1];
+                            res[t] = new TextDecoder().decode(bytes.slice(i+2, i+2+l));
+                            i += 2 + l;
+                        }
+                        document.getElementById('name').value = res[1]||'';
+                        document.getElementById('vat').value = res[2]||'';
+                        document.getElementById('total').value = res[4]||'';
+                        document.getElementById('tax').value = res[5]||'';
+                        if(res[3]) {
+                            let rawTime = res[3].replace('Z', '');
+                            document.getElementById('time').value = rawTime;
+                        }
+                    } catch(err) { }
+                }
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    };
+
+    function downloadQR(imgId, filename) {
+        const img = document.getElementById(imgId);
+        if (!img || !img.src || img.src.length < 1000) {
+            if(!img.src.startsWith('blob:')) {
+                alert("يرجى توليد الفاتورة والرموز أولاً.");
+                return;
+            }
+        }
+        const link = document.createElement('a');
+        link.href = img.src;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // تعزيز خاصية السحب والإفلات لضمان توافقها مع نظام الويندوز
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('a[id$="-link"]').forEach(link => {
+            link.addEventListener('dragstart', function(e) {
+                if (this.href && this.href.startsWith('blob:')) {
+                    const fileName = this.getAttribute('download') || 'QRCode.png';
+                    e.dataTransfer.setData('DownloadURL', `image/png:${fileName}:${this.href}`);
+                }
+            });
+        });
+    });
 </script>
 </body>
 </html>

@@ -133,7 +133,8 @@
         .preview-area { text-align: center; display: flex; flex-direction: column; gap: 20px; }
         .qr-display-card { background: var(--input-bg); padding: 25px; border-radius: 20px; border: 1px solid var(--border-color); }
 
-        .qr-img { max-width: 240px; height: auto; border-radius: 12px; border: 5px solid var(--card-bg); background-color: white; box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
+        .qr-img { max-width: 240px; height: auto; border-radius: 12px; border: 5px solid var(--card-bg); background-color: white; box-shadow: 0 15px 35px rgba(0,0,0,0.3); cursor: grab; }
+        .qr-img:active { cursor: grabbing; }
 
         .hash-box { font-family: 'Courier New', monospace; font-size: 0.75rem; background: var(--bg-body); padding: 12px; border-radius: 10px; color: var(--accent-green); word-break: break-all; margin-top: 15px; border: 1px solid rgba(16, 185, 129, 0.1); }
 
@@ -188,13 +189,15 @@
         <div class="preview-area">
             <div class="qr-display-card">
                 <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 15px; color: var(--primary);">رمز المرحلة الثانية</div>
-                <img id="qr-p2-preview" class="qr-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+                <img id="qr-p2-preview" class="qr-img" draggable="true" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+                <button class="btn-outline" style="margin-top: 15px; font-weight: bold;" onclick="downloadQR('qr-p2-preview', 'Phase_2_QR.png')">⬇️ تحميل رمز المرحلة الثانية</button>
                 <div class="hash-box" id="hash-display">SHA256: Waiting...</div>
             </div>
             
             <div class="qr-display-card" style="opacity: 0.7; transform: scale(0.9);">
                 <div style="font-size: 0.8rem; margin-bottom: 10px; color: var(--text-muted);">رمز المرحلة الأولى</div>
-                <img id="qr-p1-preview" class="qr-img" style="max-width: 160px;">
+                <img id="qr-p1-preview" class="qr-img" draggable="true" style="max-width: 160px;">
+                <button class="btn-outline" style="margin-top: 15px; font-weight: bold;" onclick="downloadQR('qr-p1-preview', 'Phase_1_QR.png')">⬇️ تحميل رمز المرحلة الأولى</button>
             </div>
         </div>
 
@@ -351,6 +354,34 @@
         };
         reader.readAsDataURL(e.target.files[0]);
     };
+
+    // دالة تحميل الـ QR Code
+    function downloadQR(imgId, filename) {
+        const img = document.getElementById(imgId);
+        // التحقق من أن الصورة تم توليدها فعلياً وليست الصورة الافتراضية الصغيرة
+        if (!img || !img.src || img.src.length < 1000) {
+            alert("يرجى توليد الفاتورة والرموز أولاً.");
+            return;
+        }
+        const link = document.createElement('a');
+        link.href = img.src;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // إصلاح وتمكين خاصية السحب والإفلات (Drag and Drop) للخارج
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.qr-img').forEach(img => {
+            img.addEventListener('dragstart', function(e) {
+                if (this.src && this.src.startsWith('data:image')) {
+                    // إجبار المتصفح على التعامل مع السحب كملف حقيقي يمكن إفلاته في الويندوز أو أي تطبيق
+                    e.dataTransfer.setData('DownloadURL', `image/png:ZATCA_QRCode.png:${this.src}`);
+                }
+            });
+        });
+    });
 </script>
 </body>
 </html>

@@ -189,7 +189,7 @@
         <div class="preview-area">
             <div class="qr-display-card">
                 <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 15px; color: var(--primary);">رمز المرحلة الثانية</div>
-                <a id="qr-p2-link" href="#" download="Phase_2_QR.png" style="display:inline-block; text-decoration:none;">
+                <a id="qr-p2-link" href="#" download="Phase_2_QR.png" draggable="true" style="display:inline-block; text-decoration:none;">
                     <img id="qr-p2-preview" class="qr-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
                 </a>
                 <button class="btn-outline" style="margin-top: 15px; font-weight: bold;" onclick="downloadQR('qr-p2-preview', 'Phase_2_QR.png')">⬇️ تحميل رمز المرحلة الثانية</button>
@@ -198,7 +198,7 @@
             
             <div class="qr-display-card" style="opacity: 0.7; transform: scale(0.9);">
                 <div style="font-size: 0.8rem; margin-bottom: 10px; color: var(--text-muted);">رمز المرحلة الأولى</div>
-                <a id="qr-p1-link" href="#" download="Phase_1_QR.png" style="display:inline-block; text-decoration:none;">
+                <a id="qr-p1-link" href="#" download="Phase_1_QR.png" draggable="true" style="display:inline-block; text-decoration:none;">
                     <img id="qr-p1-preview" class="qr-img" style="max-width: 160px;">
                 </a>
                 <button class="btn-outline" style="margin-top: 15px; font-weight: bold;" onclick="downloadQR('qr-p1-preview', 'Phase_1_QR.png')">⬇️ تحميل رمز المرحلة الأولى</button>
@@ -302,14 +302,25 @@
             let marginPx = (qzUnit === 'pixel') ? qzVal : (targetSize / (type==='p2'?130:60)) * qzVal;
             ctx.drawImage(canvas, marginPx, marginPx, targetSize - (marginPx * 2), targetSize - (marginPx * 2));
             
-            const dataUrl = finalCanvas.toDataURL("image/png");
-            document.getElementById(targetImgId).src = dataUrl;
+            // التعديل السحري: تحويل الكانفاس إلى ملف حقيقي (Blob) بدلاً من نص Base64 للتعامل مع الأحجام الكبيرة
+            finalCanvas.toBlob(function(blob) {
+                const blobUrl = URL.createObjectURL(blob);
+                const imgEl = document.getElementById(targetImgId);
+                const linkEl = document.getElementById(targetImgId.replace('-preview', '-link'));
+
+                // تنظيف الذاكرة من الرابط القديم إن وجد لتجنب ثقل المتصفح
+                if (imgEl.dataset.blobUrl) {
+                    URL.revokeObjectURL(imgEl.dataset.blobUrl);
+                }
+
+                imgEl.src = blobUrl;
+                imgEl.dataset.blobUrl = blobUrl;
+
+                if(linkEl) {
+                    linkEl.href = blobUrl;
+                }
+            }, "image/png");
             
-            // التعديل الجديد: تحديث بيانات الرابط المخفي ليعمل السحب بشكل مثالي
-            const linkEl = document.getElementById(targetImgId.replace('-preview', '-link'));
-            if(linkEl) {
-                linkEl.href = dataUrl;
-            }
         } catch(e) { console.error(e); }
     }
 
@@ -367,8 +378,10 @@
     function downloadQR(imgId, filename) {
         const img = document.getElementById(imgId);
         if (!img || !img.src || img.src.length < 1000) {
-            alert("يرجى توليد الفاتورة والرموز أولاً.");
-            return;
+            if(!img.src.startsWith('blob:')) {
+                alert("يرجى توليد الفاتورة والرموز أولاً.");
+                return;
+            }
         }
         const link = document.createElement('a');
         link.href = img.src;
@@ -377,6 +390,18 @@
         link.click();
         document.body.removeChild(link);
     }
+
+    // تعزيز خاصية السحب والإفلات لضمان توافقها مع نظام الويندوز
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('a[id$="-link"]').forEach(link => {
+            link.addEventListener('dragstart', function(e) {
+                if (this.href && this.href.startsWith('blob:')) {
+                    const fileName = this.getAttribute('download') || 'QRCode.png';
+                    e.dataTransfer.setData('DownloadURL', `image/png:${fileName}:${this.href}`);
+                }
+            });
+        });
+    });
 </script>
 </body>
 </html>
